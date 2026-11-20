@@ -1,0 +1,288 @@
+/* =========================================================================
+   AMBER DESIGN TOKENS
+   Single source of truth for colour, type, spacing, radius, shadow, motion
+   and glass (glisse). Components and pages must use the semantic tokens
+   (--color-*, --space-*, --radius-*, --text-*), never raw hex values.
+
+   Mode: set data-theme="light" | "dark" on <html>. Without it, the OS
+   preference decides.
+   Font: Inter, self-hosted via @fontsource-variable/inter (works offline, incl. desktop).
+   ========================================================================= */
+
+/* ---------- 1. Primitives (do not use directly in components) ---------- */
+:root {
+  /* Brand */
+  --amber-400: #f8b84e;
+  --amber-500: #f5a524; /* Amber: the accent */
+  --amber-600: #e0901a;
+  --amber-700: #935400; /* Amber as readable text on light backgrounds */
+
+  /* Warm neutrals: Charcoal (950) to Sand (100) */
+  --neutral-0: #ffffff;
+  --neutral-50: #f4f2ec;
+  --neutral-100: #e9e5da; /* Sand */
+  --neutral-200: #dad5c8;
+  --neutral-300: #bdb7a8;
+  --neutral-400: #9a9485;
+  --neutral-500: #777264;
+  --neutral-600: #5a564b;
+  --neutral-700: #3f3c34;
+  --neutral-800: #2a2822;
+  --neutral-900: #1e1c17;
+  --neutral-950: #17150f; /* Charcoal */
+
+  /* Status (kept apart from the accent so amber never means "error") */
+  --red-500: #ff6b5e;
+  --red-600: #c8291e;
+  --green-500: #4ade80;
+  --green-600: #1a7f4b;
+  --blue-500: #6aa8ff;
+  --blue-600: #2563c9;
+}
+
+/* ---------- 2. Scales (mode independent) ---------- */
+:root {
+  /* Typography */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --text-4xl: 48px;
+  --text-5xl: 64px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+
+  --tracking-tight: -0.035em; /* display headings */
+  --tracking-snug: -0.02em;   /* titles */
+  --tracking-wide: 0.08em;    /* uppercase labels */
+
+  /* Spacing: 4px base */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;   /* cards, panels */
+  --radius-2xl: 28px;  /* large media, hero blocks */
+  --radius-full: 999px;
+
+  /* Layout */
+  --container-max: 1120px;
+  --gutter: 20px;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Layers */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+}
+
+/* ---------- 3. Semantic colours: LIGHT ---------- */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: var(--neutral-100);
+  --color-surface: var(--neutral-50);
+  --color-surface-raised: #fbfaf6;
+  --color-border: rgb(23 21 15 / 0.12);
+  --color-border-strong: rgb(23 21 15 / 0.22);
+
+  --color-text: var(--neutral-950);
+  --color-text-muted: rgb(23 21 15 / 0.62);
+  --color-text-subtle: rgb(23 21 15 / 0.42);
+
+  --color-accent: var(--amber-500);
+  --color-accent-hover: var(--amber-600);
+  --color-accent-soft: rgb(245 165 36 / 0.18);
+  --color-on-accent: var(--neutral-950); /* text on amber is ALWAYS dark */
+  --color-accent-text: var(--amber-700); /* amber used as text */
+
+  --color-danger: var(--red-600);
+  --color-danger-soft: rgb(200 41 30 / 0.12);
+  --color-success: var(--green-600);
+  --color-success-soft: rgb(26 127 75 / 0.12);
+  --color-info: var(--blue-600);
+  --color-info-soft: rgb(37 99 201 / 0.12);
+
+  /* Text on solid status fills (contrast >= 4.5:1, checked) */
+  --color-on-success: #ffffff;   /* 5.02 */
+  --color-on-danger: #ffffff;    /* 5.54 */
+  --color-on-info: #ffffff;      /* 5.67 */
+  --color-neutral-solid: var(--neutral-700);
+  --color-on-neutral-solid: var(--neutral-50); /* 11.0 */
+
+  --color-focus-ring: var(--amber-500);
+
+  /* Floating surfaces: dropdowns, menus, popovers */
+  --color-popover: rgb(251 250 246 / 0.92);
+  --color-popover-edge: rgb(23 21 15 / 0.1);
+  --color-hover: rgb(23 21 15 / 0.06);
+
+  --shadow-sm: 0 1px 2px rgb(23 21 15 / 0.06);
+  --shadow-md: 0 6px 20px rgb(23 21 15 / 0.08);
+  --shadow-lg: 0 18px 48px rgb(23 21 15 / 0.14);
+
+  /* Backdrop glow behind glass */
+  --glow-accent: rgb(245 165 36 / 0.55);
+  --glow-neutral: rgb(23 21 15 / 0.16);
+}
+
+/* ---------- 4. Semantic colours: DARK ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: var(--neutral-950);
+  --color-surface: var(--neutral-900);
+  --color-surface-raised: var(--neutral-800);
+  --color-border: rgb(233 229 218 / 0.12);
+  --color-border-strong: rgb(233 229 218 / 0.22);
+
+  --color-text: var(--neutral-100);
+  --color-text-muted: rgb(233 229 218 / 0.62);
+  --color-text-subtle: rgb(233 229 218 / 0.42);
+
+  --color-accent: var(--amber-500);
+  --color-accent-hover: var(--amber-400);
+  --color-accent-soft: rgb(245 165 36 / 0.16);
+  --color-on-accent: var(--neutral-950);
+  --color-accent-text: var(--amber-500);
+
+  --color-danger: var(--red-500);
+  --color-danger-soft: rgb(255 107 94 / 0.14);
+  --color-success: var(--green-500);
+  --color-success-soft: rgb(74 222 128 / 0.14);
+  --color-info: var(--blue-500);
+  --color-info-soft: rgb(106 168 255 / 0.14);
+
+  /* Text on solid status fills: bright fills need dark text (white is 1.7-2.8:1) */
+  --color-on-success: var(--neutral-950);   /* 10.47 */
+  --color-on-danger: var(--neutral-950);    /* 6.53 */
+  --color-on-info: var(--neutral-950);      /* 7.52 */
+  --color-neutral-solid: var(--neutral-300);
+  --color-on-neutral-solid: var(--neutral-950); /* 9.13 */
+
+  --color-focus-ring: var(--amber-400);
+
+  /* Floating surfaces: dropdowns, menus, popovers */
+  --color-popover: rgb(36 34 28 / 0.92);
+  --color-popover-edge: rgb(233 229 218 / 0.12);
+  --color-hover: rgb(233 229 218 / 0.08);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 6px 20px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5);
+
+  --glow-accent: rgb(245 165 36 / 0.45);
+  --glow-neutral: rgb(233 229 218 / 0.1);
+}
+
+/* OS preference when no data-theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --color-bg: var(--neutral-950);
+    --color-surface: var(--neutral-900);
+    --color-surface-raised: var(--neutral-800);
+    --color-border: rgb(233 229 218 / 0.12);
+    --color-border-strong: rgb(233 229 218 / 0.22);
+    --color-text: var(--neutral-100);
+    --color-text-muted: rgb(233 229 218 / 0.62);
+    --color-text-subtle: rgb(233 229 218 / 0.42);
+    --color-accent-hover: var(--amber-400);
+    --color-accent-soft: rgb(245 165 36 / 0.16);
+    --color-accent-text: var(--amber-500);
+    --color-danger: var(--red-500);
+    --color-danger-soft: rgb(255 107 94 / 0.14);
+    --color-success: var(--green-500);
+    --color-success-soft: rgb(74 222 128 / 0.14);
+    --color-info: var(--blue-500);
+    --color-info-soft: rgb(106 168 255 / 0.14);
+    --color-on-success: var(--neutral-950);
+    --color-on-danger: var(--neutral-950);
+    --color-on-info: var(--neutral-950);
+    --color-neutral-solid: var(--neutral-300);
+    --color-on-neutral-solid: var(--neutral-950);
+    --color-focus-ring: var(--amber-400);
+    --color-popover: rgb(36 34 28 / 0.92);
+    --color-popover-edge: rgb(233 229 218 / 0.12);
+    --color-hover: rgb(233 229 218 / 0.08);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 6px 20px rgb(0 0 0 / 0.35);
+    --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5);
+    --glow-accent: rgb(245 165 36 / 0.45);
+    --glow-neutral: rgb(233 229 218 / 0.1);
+  }
+}
+
+/* ---------- 5. glisse bridge ---------- */
+/* glisse reads --lg-* variables; point them at our tokens so glass components match. */
+:root,
+[data-theme] {
+  --lg-foreground: var(--color-text);
+  --lg-muted: var(--color-text-muted);
+  --lg-fill: var(--color-accent);      /* filled buttons */
+  --lg-on: var(--color-accent);        /* switch "on" */
+  --lg-destructive: var(--color-danger);
+  --lg-ring: var(--color-focus-ring);
+  --lg-ease: var(--ease-standard);
+  /* glisse menus/popovers use our warm popover surface instead of cool grey */
+  --lg-surface: var(--color-popover);
+  --lg-surface-edge: var(--color-popover-edge);
+  --lg-highlight: var(--color-hover);
+  --lg-separator: var(--color-border);
+}
+/* glisse hardcodes white text on filled buttons; amber needs dark text. */
+.lg-button[data-variant="filled"]:not([data-tint]):not([data-destructive]) {
+  color: var(--color-on-accent);
+}
+.lg-button[data-variant="filled"][data-destructive] {
+  color: #fff;
+}
+
+/* ---------- 6. Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+::selection { background: var(--color-accent-soft); }

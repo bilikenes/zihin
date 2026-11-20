@@ -1,0 +1,79 @@
+/* Zihin'e özgü yerleşim. Yalnızca Amber UI token'ları kullanılır. */
+
+/* ---------- Pencere iskeleti: çubuk + sahne (kendi kayan içerik) ---------- */
+.app-root { height: 100vh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; --titlebar-h: 0px; } /* ui-allow */
+.app-root.has-titlebar { --titlebar-h: var(--space-8); }
+.app-root { --panel-bg: color-mix(in srgb, var(--color-surface) 82%, transparent); }
+.app-stage { position: relative; flex: 1; min-height: 0; }
+.app-scroll { position: absolute; inset: 0; overflow-x: hidden; overflow-y: auto; z-index: 1; }
+body:has(.ui-modal-backdrop) .app-scroll { overflow: hidden; }
+.app-scroll .ui-shell { min-height: 100%; }
+.app-scroll .ui-shell-side { max-height: calc(100vh - var(--titlebar-h) - var(--space-8)); }
+
+/* ---------- Kaydırma çubuğu hiçbir yerde görünmez; kaydırma fare, dokunma ve klavyeyle sürer ---------- */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* ---------- Pencere çubuğu: sayfa zemininde, yalnızca pencere düğmeleri ---------- */
+.app-titlebar { position: relative; flex: none; height: var(--titlebar-h); z-index: calc(var(--z-modal) + 1); display: flex; justify-content: flex-end; background: var(--color-bg); user-select: none; transition: background var(--duration-slow); }
+.app-titlebar-controls { display: flex; height: 100%; }
+.app-titlebar-btn { width: var(--space-12); height: 100%; display: grid; place-items: center; border: 0; background: none; color: var(--color-text-muted); cursor: default; transition: background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard); }
+.app-titlebar-btn:hover { background: var(--color-border); color: var(--color-text); }
+.app-titlebar-btn.is-close:hover { background: var(--color-danger); color: var(--color-on-accent); }
+
+/* ---------- Yan menü ---------- */
+/* Performans: kaydırırken her cam denetim arka planı yeniden bulanıklaştırmasın. */
+.ui-shell-main .lg-glass, .ui-shell-side .lg-glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ui-shell-main .ui-card:not(.is-glass) { background: var(--panel-bg); }
+.ui-shell-side .ui-sidebar { background-color: var(--panel-bg); background-image: none; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); } /* ui-allow */
+.ui-shell-main .lg-switch-thumb { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Girdiler ve Select 360 genişlikte durur; kapsayıcıyı dolduralım. */
+.ui-field .lg-input, .ui-grow .lg-input, .ui-field .ui-select-root, .ui-grow .ui-select-root { max-width: none; }
+
+.app-warnings { margin-bottom: var(--space-6); }
+
+/* ---------- Sayfa başlığı ---------- */
+.app-page-head { flex-wrap: nowrap; align-items: flex-start; }
+.app-page-head > div { min-width: 0; }
+.app-page-head .ui-title { margin-bottom: var(--space-1); }
+
+/* ---------- Tag tablosu ---------- */
+/* Amber Table sarmalayıcısı yatay kaydırır ve içindeki menüyü kırpar/genişletir; burada kaydırma yok,
+   menü tablonun üstüne açılır. Sütunlar eşit, taşan metin üç nokta ile kısalır. */
+.app-table .ui-table-wrap { overflow: visible; }
+.app-table .ui-table { table-layout: fixed; }
+.app-table .ui-table th, .app-table .ui-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-table .ui-table th:last-child, .app-table .ui-table td:last-child { width: var(--space-16); overflow: visible; padding-left: var(--space-2); padding-right: var(--space-3); }
+/* Kaydırma kalktığı için köşeleri satır vurgusu kendisi yuvarlasın. */
+.app-table .ui-table tbody tr:last-child td:first-child { border-bottom-left-radius: calc(var(--radius-xl) - 1px); } /* ui-allow */
+.app-table .ui-table tbody tr:last-child td:last-child { border-bottom-right-radius: calc(var(--radius-xl) - 1px); } /* ui-allow */
+.app-table .ui-table-wrap { background: var(--panel-bg); }
+.app-note { color: var(--color-text-muted); }
+
+/* Menü kartı tablonun üstünde, alttaki satırların önünde açılır: yalnızca menüsü açık olan satır öne alınır. */
+.app-table tr:has(.lg-menu-card) { position: relative; z-index: var(--z-overlay); }
+
+/* Glisse'in menü kartı içindeki ikinci 3 nokta simgesi ve açılış sırasında düğmenin kararması gizlenir. */
+.lg-menu-glyph { display: none; }
+.lg-menu > .lg-button { opacity: 1 !important; }
+.lg-menu-card { top: calc(100% + var(--space-2)); transform-origin: calc(100% - var(--space-5)) 0; }
+.lg-menu-card[data-align="start"] { transform-origin: var(--space-5) 0; }
+
+/* ---------- Tıklayınca kopyalanan değer ---------- */
+.app-secret { margin-left: calc(var(--space-3) * -1); display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; padding: var(--space-1) var(--space-3); border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--color-text-muted); font: inherit; letter-spacing: var(--tracking-wide); cursor: pointer; transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); } /* ui-allow */
+.app-secret:hover { background: var(--color-hover); border-color: var(--color-border); color: var(--color-text); }
+.app-secret:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; } /* ui-allow */
+.app-secret svg { flex: none; color: var(--color-text-subtle); }
+.app-secret.is-copied { border-color: var(--color-success); background: color-mix(in srgb, var(--color-success) 14%, transparent); color: var(--color-text); letter-spacing: normal; }
+.app-secret.is-copied svg { color: var(--color-success); }
+
+/* ---------- Pencereler (Modal) düz yüzey ---------- */
+.ui-modal.lg-glass { background-color: var(--color-surface); background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid var(--color-border); box-shadow: var(--shadow-lg); } /* ui-allow */
+.ui-modal-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ui-modal .lg-glass:not(.ui-modal) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ui-modal .lg-glass:not(.ui-modal):not([data-variant="filled"]) { background-color: var(--color-surface-raised); }
+.ui-modal { max-height: calc(100vh - var(--space-10)); display: flex; flex-direction: column; overflow: hidden; }
+.ui-modal-body { flex: 1; min-height: 0; overflow-y: auto; }
+.ui-modal-head, .ui-modal-foot { flex: none; }
+.ui-modal:focus, .ui-modal:focus-visible { outline: none; }
