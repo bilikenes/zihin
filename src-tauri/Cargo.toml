@@ -1,6 +1,6 @@
 [package]
 name = "zihin"
-version = "0.2.0"
+version = "0.2.1"
 description = "Tag ile metin genişletme: ;tag + TAB"
 authors = ["Enes Bilik"]
 repository = "https://github.com/bilikenes/zihin"
