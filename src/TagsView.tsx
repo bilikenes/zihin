@@ -59,7 +59,9 @@ function SecretCell({ entry, prefix }: { entry: Entry; prefix: string }) {
   );
 }
 
-export function TagsView({ entries, prefix, onChanged, newTagRequest }: { entries: Entry[]; prefix: string; onChanged: () => Promise<unknown>; newTagRequest: number }) {
+export function TagsView({ entries, prefix, onChanged, newTagPending, onNewTagHandled }: {
+  entries: Entry[]; prefix: string; onChanged: () => Promise<unknown>; newTagPending: boolean; onNewTagHandled: () => void;
+}) {
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -76,10 +78,11 @@ export function TagsView({ entries, prefix, onChanged, newTagRequest }: { entrie
     setDraft({ original: e.tag, tag: e.tag, value: e.value, note: e.note ?? "" });
     setError(undefined);
   };
-  // Yan menüdeki "Yeni tag" ya da Ctrl+N formu açar. İlk açılışta (istek 0) açılmaz.
+  // Yan menüdeki "Yeni tag" formu açar. İstek tüketilince sıfırlanır; böylece Ayarlar'dan
+  // Tag'ler'e dönüldüğünde (bileşen yeniden kurulduğunda) form kendiliğinden açılmaz.
   useEffect(() => {
-    if (newTagRequest > 0) openNew();
-  }, [newTagRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (newTagPending) { openNew(); onNewTagHandled(); }
+  }, [newTagPending]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") { e.preventDefault(); openNew(); }

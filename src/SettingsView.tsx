@@ -79,7 +79,7 @@ export function SettingsView({ settings, onChange, mode, onModeChange, updater }
       </Card>
 
       <Card title="Genişletme" description="Tag'in değere dönüşmesi nasıl tetiklensin?">
-        <div className="ui-stack">
+        <div className="app-setting-pair">
           <Field label="Tetikleyici tuş" hint="Eşleşen tag yoksa tuş normal çalışır.">
             {() => (
               <RadioGroup
@@ -126,7 +126,7 @@ export function SettingsView({ settings, onChange, mode, onModeChange, updater }
             </Button>
           ) : (
             <Button icon={<RefreshCw size={18} />} disabled={checking} onClick={() => void updater.checkNow()}>
-              Güncellemeleri denetle
+              Denetle
             </Button>
           )}
         </div>

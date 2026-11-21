@@ -26,8 +26,9 @@ function Shell() {
   const { mode, setMode } = useTheme();
   const toast = useToast();
   const [view, setView] = useState(TAGS);
-  /** "Yeni tag" menü öğesi her seçildiğinde artar; TagsView bunu görünce formu açar. */
-  const [newTagRequest, setNewTagRequest] = useState(0);
+  /** "Yeni tag" menü öğesi seçilince true olur; TagsView formu açıp sıfırlar. */
+  const [newTagPending, setNewTagPending] = useState(false);
+  const clearNewTag = useCallback(() => setNewTagPending(false), []);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const updater = useUpdater(inTauri);
@@ -62,7 +63,7 @@ function Shell() {
   const onSelect = (value: string) => {
     if (value === NEW_TAG) {
       setView(TAGS);
-      setNewTagRequest((n) => n + 1);
+      setNewTagPending(true);
     } else setView(value);
   };
 
@@ -102,7 +103,7 @@ function Shell() {
               {view === SETTINGS ? (
                 <SettingsView settings={settings} onChange={setSettings} mode={mode} onModeChange={setMode} updater={updater} />
               ) : (
-                <TagsView entries={entries} prefix={settings.prefix} onChanged={refresh} newTagRequest={newTagRequest} />
+                <TagsView entries={entries} prefix={settings.prefix} onChanged={refresh} newTagPending={newTagPending} onNewTagHandled={clearNewTag} />
               )}
             </main>
           </div>
