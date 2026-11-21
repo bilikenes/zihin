@@ -22,6 +22,8 @@ body:has(.ui-modal-backdrop) .app-scroll { overflow: hidden; }
 .app-titlebar-btn.is-close:hover { background: var(--color-danger); color: var(--color-on-accent); }
 
 /* ---------- Yan menü ---------- */
+.app-sidebar-squirrel { display: block; width: 100%; max-width: 240px; aspect-ratio: 20 / 13; object-fit: contain; margin: 0 auto var(--space-3); } /* ui-allow: yan menü genişliği */
+
 /* Performans: kaydırırken her cam denetim arka planı yeniden bulanıklaştırmasın. */
 .ui-shell-main .lg-glass, .ui-shell-side .lg-glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .ui-shell-main .ui-card:not(.is-glass) { background: var(--panel-bg); }
@@ -38,6 +40,24 @@ body:has(.ui-modal-backdrop) .app-scroll { overflow: hidden; }
 .app-page-head > div { min-width: 0; }
 .app-page-head .ui-title { margin-bottom: var(--space-1); }
 
+/* ---------- Boş tag ekranı ---------- */
+.ui-empty-icon:has(.app-empty-tag-mark) {
+  width: var(--space-20);
+  height: var(--space-20);
+  border-radius: var(--radius-xl);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: 0 var(--space-2) var(--space-6) color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+.app-empty-tag-mark {
+  display: block;
+  width: var(--space-16);
+  height: var(--space-16);
+  background: currentColor;
+  mask: url("/empty-tags.png") center / contain no-repeat;
+}
+
 /* ---------- Tag tablosu ---------- */
 /* Amber Table sarmalayıcısı yatay kaydırır ve içindeki menüyü kırpar/genişletir; burada kaydırma yok,
    menü tablonun üstüne açılır. Sütunlar eşit, taşan metin üç nokta ile kısalır. */
@@ -49,7 +69,7 @@ body:has(.ui-modal-backdrop) .app-scroll { overflow: hidden; }
 .app-table .ui-table tbody tr:last-child td:first-child { border-bottom-left-radius: calc(var(--radius-xl) - 1px); } /* ui-allow */
 .app-table .ui-table tbody tr:last-child td:last-child { border-bottom-right-radius: calc(var(--radius-xl) - 1px); } /* ui-allow */
 .app-table .ui-table-wrap { background: var(--panel-bg); }
-.app-note { color: var(--color-text-muted); }
+.app-table .ui-table th, .app-table .ui-table td { text-align: center; }.app-note { color: var(--color-text-muted); }
 
 /* Menü kartı tablonun üstünde, alttaki satırların önünde açılır: yalnızca menüsü açık olan satır öne alınır. */
 .app-table tr:has(.lg-menu-card) { position: relative; z-index: var(--z-overlay); }
@@ -77,3 +97,7 @@ body:has(.ui-modal-backdrop) .app-scroll { overflow: hidden; }
 .ui-modal-body { flex: 1; min-height: 0; overflow-y: auto; }
 .ui-modal-head, .ui-modal-foot { flex: none; }
 .ui-modal:focus, .ui-modal:focus-visible { outline: none; }
+
+/* ---------- Hareketli arka plan (Pastel Glow) ---------- */
+.app-bgfx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.app-bgfx-art { position: absolute; }

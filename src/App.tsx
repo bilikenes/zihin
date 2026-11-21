@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Settings as SettingsIcon, Tag } from "lucide-react";
+import { Plus, Settings as SettingsIcon, Tag } from "lucide-react";
 import { Alert, Badge, Button, Progress, Sidebar, ToastProvider, useToast, type SidebarEntry } from "./ui";
 import { defaultSettings, getSettings, inTauri, listTags, setWindowTheme, type Entry, type Settings } from "./api";
+import { AnimatedBackground } from "./background/AnimatedBackground";
 import { SettingsView } from "./SettingsView";
+import { SidebarSquirrel } from "./SidebarSquirrel";
 import { TagsView } from "./TagsView";
 import { TitleBar } from "./TitleBar";
 import { useUpdater } from "./updater";
@@ -18,11 +20,14 @@ export default function App() {
 
 const TAGS = "tags";
 const SETTINGS = "settings";
+const NEW_TAG = "__new-tag";
 
 function Shell() {
   const { mode, setMode } = useTheme();
   const toast = useToast();
   const [view, setView] = useState(TAGS);
+  /** "Yeni tag" menü öğesi her seçildiğinde artar; TagsView bunu görünce formu açar. */
+  const [newTagRequest, setNewTagRequest] = useState(0);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const updater = useUpdater(inTauri);
@@ -44,6 +49,8 @@ function Shell() {
   const items: SidebarEntry[] = [
     { section: "Zihin" },
     { value: TAGS, label: "Tag'ler", icon: <Tag size={18} />, badge: <Badge tone="neutral">{entries.length}</Badge> },
+    { value: NEW_TAG, label: "Yeni tag", icon: <Plus size={18} /> },
+    { section: "Uygulama" },
     {
       value: SETTINGS,
       label: "Ayarlar",
@@ -52,15 +59,23 @@ function Shell() {
     },
   ];
 
+  const onSelect = (value: string) => {
+    if (value === NEW_TAG) {
+      setView(TAGS);
+      setNewTagRequest((n) => n + 1);
+    } else setView(value);
+  };
+
   return (
     <div className={`ui-page app-root${inTauri ? " has-titlebar" : ""}`}>
-      <div className="ui-glow" />
       {inTauri && <TitleBar />}
       <div className="app-stage">
+        <AnimatedBackground mode={mode} />
         <div className="app-scroll">
           <div className="ui-shell">
             <aside className="ui-shell-side">
-              <Sidebar items={items} active={view} onSelect={setView} />
+              <SidebarSquirrel />
+              <Sidebar items={items} active={view} onSelect={onSelect} />
             </aside>
             <main className="ui-shell-main">
               {updateReady && !(updateDismissed && updateState.kind === "available") && (
@@ -87,7 +102,7 @@ function Shell() {
               {view === SETTINGS ? (
                 <SettingsView settings={settings} onChange={setSettings} mode={mode} onModeChange={setMode} updater={updater} />
               ) : (
-                <TagsView entries={entries} prefix={settings.prefix} onChanged={refresh} />
+                <TagsView entries={entries} prefix={settings.prefix} onChanged={refresh} newTagRequest={newTagRequest} />
               )}
             </main>
           </div>

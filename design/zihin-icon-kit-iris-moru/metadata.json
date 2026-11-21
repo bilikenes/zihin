@@ -1,0 +1,50 @@
+{
+  "name": "Zihin",
+  "source": "design/zihin-renk-secenekleri/arsivci-sincap-iris-moru.png",
+  "original_dimensions": [
+    1254,
+    1254
+  ],
+  "square_artwork_dimensions": [
+    1254,
+    1254
+  ],
+  "upscaled_1024": false,
+  "background_hex": "#9875F6",
+  "corner_mode": "keep",
+  "corner_radius": 0.24,
+  "tiny_icon_source": "master",
+  "note": "Tüm simgeler, seçilen İris Moru PNG çiziminden türetilmiştir.",
+  "files": [
+    "png/icon-0016.png",
+    "png/icon-0020.png",
+    "png/icon-0024.png",
+    "png/icon-0032.png",
+    "png/icon-0040.png",
+    "png/icon-0048.png",
+    "png/icon-0064.png",
+    "png/icon-0096.png",
+    "png/icon-0128.png",
+    "png/icon-0180.png",
+    "png/icon-0192.png",
+    "png/icon-0256.png",
+    "png/icon-0512.png",
+    "png/icon-1024.png",
+    "master-1024.png",
+    "windows/app.ico",
+    "mac/app.icns",
+    "web/favicon-16.png",
+    "web/favicon-32.png",
+    "web/apple-touch-icon.png",
+    "web/icon-192.png",
+    "web/icon-512.png",
+    "web/maskable-icon-512.png",
+    "web/favicon.ico",
+    "web/site.webmanifest",
+    "web/head-snippet.html",
+    "export-preview.png",
+    "metadata.json",
+    "README.txt"
+  ],
+  "variant": "İris Moru"
+}

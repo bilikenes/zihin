@@ -12,24 +12,24 @@
 /* ---------- 1. Primitives (do not use directly in components) ---------- */
 :root {
   /* Brand */
-  --amber-400: #f8b84e;
-  --amber-500: #f5a524; /* Amber: the accent */
-  --amber-600: #e0901a;
-  --amber-700: #935400; /* Amber as readable text on light backgrounds */
+  --amber-400: #b199f9;
+  --amber-500: #9875f6; /* Iris Moru: the accent (logo background) */
+  --amber-600: #8160ea;
+  --amber-700: #5b34c2; /* Iris as readable text on light backgrounds */
 
   /* Warm neutrals: Charcoal (950) to Sand (100) */
   --neutral-0: #ffffff;
-  --neutral-50: #f4f2ec;
-  --neutral-100: #e9e5da; /* Sand */
-  --neutral-200: #dad5c8;
-  --neutral-300: #bdb7a8;
-  --neutral-400: #9a9485;
-  --neutral-500: #777264;
-  --neutral-600: #5a564b;
-  --neutral-700: #3f3c34;
-  --neutral-800: #2a2822;
-  --neutral-900: #1e1c17;
-  --neutral-950: #17150f; /* Charcoal */
+  --neutral-50: #f6f4fb;
+  --neutral-100: #ece8f6; /* Lavender mist */
+  --neutral-200: #ddd7ec;
+  --neutral-300: #bfb8d3;
+  --neutral-400: #9b94b0;
+  --neutral-500: #78718e;
+  --neutral-600: #5a5470;
+  --neutral-700: #403b53;
+  --neutral-800: #272238;
+  --neutral-900: #1c1829;
+  --neutral-950: #14111f; /* Deep violet */
 
   /* Status (kept apart from the accent so amber never means "error") */
   --red-500: #ff6b5e;
@@ -117,17 +117,17 @@
 
   --color-bg: var(--neutral-100);
   --color-surface: var(--neutral-50);
-  --color-surface-raised: #fbfaf6;
-  --color-border: rgb(23 21 15 / 0.12);
-  --color-border-strong: rgb(23 21 15 / 0.22);
+  --color-surface-raised: #fbfaff;
+  --color-border: rgb(20 17 31 / 0.12);
+  --color-border-strong: rgb(20 17 31 / 0.22);
 
   --color-text: var(--neutral-950);
-  --color-text-muted: rgb(23 21 15 / 0.62);
-  --color-text-subtle: rgb(23 21 15 / 0.42);
+  --color-text-muted: rgb(20 17 31 / 0.62);
+  --color-text-subtle: rgb(20 17 31 / 0.42);
 
   --color-accent: var(--amber-500);
   --color-accent-hover: var(--amber-600);
-  --color-accent-soft: rgb(245 165 36 / 0.18);
+  --color-accent-soft: rgb(152 117 246 / 0.18);
   --color-on-accent: var(--neutral-950); /* text on amber is ALWAYS dark */
   --color-accent-text: var(--amber-700); /* amber used as text */
 
@@ -148,17 +148,17 @@
   --color-focus-ring: var(--amber-500);
 
   /* Floating surfaces: dropdowns, menus, popovers */
-  --color-popover: rgb(251 250 246 / 0.92);
-  --color-popover-edge: rgb(23 21 15 / 0.1);
-  --color-hover: rgb(23 21 15 / 0.06);
+  --color-popover: rgb(251 250 255 / 0.92);
+  --color-popover-edge: rgb(20 17 31 / 0.1);
+  --color-hover: rgb(20 17 31 / 0.06);
 
-  --shadow-sm: 0 1px 2px rgb(23 21 15 / 0.06);
-  --shadow-md: 0 6px 20px rgb(23 21 15 / 0.08);
-  --shadow-lg: 0 18px 48px rgb(23 21 15 / 0.14);
+  --shadow-sm: 0 1px 2px rgb(20 17 31 / 0.06);
+  --shadow-md: 0 6px 20px rgb(20 17 31 / 0.08);
+  --shadow-lg: 0 18px 48px rgb(20 17 31 / 0.14);
 
   /* Backdrop glow behind glass */
-  --glow-accent: rgb(245 165 36 / 0.55);
-  --glow-neutral: rgb(23 21 15 / 0.16);
+  --glow-accent: rgb(152 117 246 / 0.55);
+  --glow-neutral: rgb(20 17 31 / 0.16);
 }
 
 /* ---------- 4. Semantic colours: DARK ---------- */
@@ -168,16 +168,16 @@
   --color-bg: var(--neutral-950);
   --color-surface: var(--neutral-900);
   --color-surface-raised: var(--neutral-800);
-  --color-border: rgb(233 229 218 / 0.12);
-  --color-border-strong: rgb(233 229 218 / 0.22);
+  --color-border: rgb(236 232 246 / 0.12);
+  --color-border-strong: rgb(236 232 246 / 0.22);
 
   --color-text: var(--neutral-100);
-  --color-text-muted: rgb(233 229 218 / 0.62);
-  --color-text-subtle: rgb(233 229 218 / 0.42);
+  --color-text-muted: rgb(236 232 246 / 0.62);
+  --color-text-subtle: rgb(236 232 246 / 0.42);
 
   --color-accent: var(--amber-500);
   --color-accent-hover: var(--amber-400);
-  --color-accent-soft: rgb(245 165 36 / 0.16);
+  --color-accent-soft: rgb(152 117 246 / 0.16);
   --color-on-accent: var(--neutral-950);
   --color-accent-text: var(--amber-500);
 
@@ -198,16 +198,16 @@
   --color-focus-ring: var(--amber-400);
 
   /* Floating surfaces: dropdowns, menus, popovers */
-  --color-popover: rgb(36 34 28 / 0.92);
-  --color-popover-edge: rgb(233 229 218 / 0.12);
-  --color-hover: rgb(233 229 218 / 0.08);
+  --color-popover: rgb(39 34 56 / 0.92);
+  --color-popover-edge: rgb(236 232 246 / 0.12);
+  --color-hover: rgb(236 232 246 / 0.08);
 
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-md: 0 6px 20px rgb(0 0 0 / 0.35);
   --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5);
 
-  --glow-accent: rgb(245 165 36 / 0.45);
-  --glow-neutral: rgb(233 229 218 / 0.1);
+  --glow-accent: rgb(152 117 246 / 0.45);
+  --glow-neutral: rgb(236 232 246 / 0.1);
 }
 
 /* OS preference when no data-theme is set */
@@ -217,13 +217,13 @@
     --color-bg: var(--neutral-950);
     --color-surface: var(--neutral-900);
     --color-surface-raised: var(--neutral-800);
-    --color-border: rgb(233 229 218 / 0.12);
-    --color-border-strong: rgb(233 229 218 / 0.22);
+    --color-border: rgb(236 232 246 / 0.12);
+    --color-border-strong: rgb(236 232 246 / 0.22);
     --color-text: var(--neutral-100);
-    --color-text-muted: rgb(233 229 218 / 0.62);
-    --color-text-subtle: rgb(233 229 218 / 0.42);
+    --color-text-muted: rgb(236 232 246 / 0.62);
+    --color-text-subtle: rgb(236 232 246 / 0.42);
     --color-accent-hover: var(--amber-400);
-    --color-accent-soft: rgb(245 165 36 / 0.16);
+    --color-accent-soft: rgb(152 117 246 / 0.16);
     --color-accent-text: var(--amber-500);
     --color-danger: var(--red-500);
     --color-danger-soft: rgb(255 107 94 / 0.14);
@@ -237,14 +237,14 @@
     --color-neutral-solid: var(--neutral-300);
     --color-on-neutral-solid: var(--neutral-950);
     --color-focus-ring: var(--amber-400);
-    --color-popover: rgb(36 34 28 / 0.92);
-    --color-popover-edge: rgb(233 229 218 / 0.12);
-    --color-hover: rgb(233 229 218 / 0.08);
+    --color-popover: rgb(39 34 56 / 0.92);
+    --color-popover-edge: rgb(236 232 246 / 0.12);
+    --color-hover: rgb(236 232 246 / 0.08);
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-md: 0 6px 20px rgb(0 0 0 / 0.35);
     --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5);
-    --glow-accent: rgb(245 165 36 / 0.45);
-    --glow-neutral: rgb(233 229 218 / 0.1);
+    --glow-accent: rgb(152 117 246 / 0.45);
+    --glow-neutral: rgb(236 232 246 / 0.1);
   }
 }
 

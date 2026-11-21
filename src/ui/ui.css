@@ -177,7 +177,7 @@
 .ui-table .align-right { text-align: right; }
 
 /* ---------- Modal ---------- */
-.ui-modal-backdrop { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-5); background: rgb(23 21 15 / 0.45); animation: ui-fade var(--duration-base) var(--ease-standard); }
+.ui-modal-backdrop { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--space-5); background: rgb(20 17 31 / 0.5); animation: ui-fade var(--duration-base) var(--ease-standard); }
 .ui-modal { width: min(480px, 100%); border-radius: var(--radius-2xl); padding: var(--space-6); animation: ui-pop var(--duration-slow) var(--ease-spring); }
 .ui-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-3); }
 .ui-modal-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-snug); text-transform: none; color: var(--color-text); line-height: var(--leading-snug); margin: 0; }

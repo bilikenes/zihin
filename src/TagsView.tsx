@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { Check, Copy, Pencil, Tag, Trash2 } from "lucide-react";
 import { Button, EmptyState, Field, Input, Menu, Modal, SearchField, Table, Textarea, useToast, type Column } from "./ui";
 import { copyText, deleteTag, saveTag, type Entry } from "./api";
 
@@ -59,7 +59,7 @@ function SecretCell({ entry, prefix }: { entry: Entry; prefix: string }) {
   );
 }
 
-export function TagsView({ entries, prefix, onChanged }: { entries: Entry[]; prefix: string; onChanged: () => Promise<unknown> }) {
+export function TagsView({ entries, prefix, onChanged, newTagRequest }: { entries: Entry[]; prefix: string; onChanged: () => Promise<unknown>; newTagRequest: number }) {
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -76,6 +76,17 @@ export function TagsView({ entries, prefix, onChanged }: { entries: Entry[]; pre
     setDraft({ original: e.tag, tag: e.tag, value: e.value, note: e.note ?? "" });
     setError(undefined);
   };
+  // Yan menüdeki "Yeni tag" ya da Ctrl+N formu açar. İlk açılışta (istek 0) açılmaz.
+  useEffect(() => {
+    if (newTagRequest > 0) openNew();
+  }, [newTagRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") { e.preventDefault(); openNew(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // Sabit kimlik şart: Modal, onClose değiştikçe odağı kendine çeker ve yazarken alan odağı kaybeder.
   const closeForm = useCallback(() => setDraft(null), []);
   const closeDelete = useCallback(() => setToDelete(null), []);
@@ -141,19 +152,16 @@ export function TagsView({ entries, prefix, onChanged }: { entries: Entry[]; pre
 
   return (
     <div className="ui-stack is-loose">
-      <div className="ui-row is-between app-page-head">
-        <div>
-          <h1 className="ui-title">Tag'ler</h1>
-          <p className="ui-muted">{prefix}tag yazıp tetikleyici tuşa bas, değeri gelsin.</p>
-        </div>
-        <Button variant="filled" icon={<Plus size={18} />} onClick={openNew}>Yeni tag</Button>
+      <div className="app-page-head">
+        <h1 className="ui-title">Tag'ler</h1>
+        <p className="ui-muted">{prefix}tag yazıp tetikleyici tuşa bas, değeri gelsin.</p>
       </div>
 
       <SearchField value={query} onValueChange={setQuery} placeholder="Tag veya notlarda ara" />
 
       {entries.length === 0 ? (
         <EmptyState
-          icon={<Tag size={26} />}
+          icon={<span className="app-empty-tag-mark" aria-hidden="true" />}
           title="Henüz tag yok"
           description="İlk tag'ini ekleyerek başla."
           action={<Button variant="filled" onClick={openNew}>Yeni tag</Button>}
