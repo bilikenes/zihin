@@ -1,17 +1,26 @@
 mod expander;
 mod matcher;
+mod popup;
 mod settings;
 mod store;
+mod suggest;
 
 use settings::{Settings, SettingsStore};
-use std::{sync::Mutex, time::{SystemTime, UNIX_EPOCH}};
-use store::{Entry, Store};
+use std::{
+    sync::{
+        atomic::{AtomicIsize, Ordering},
+        Mutex,
+    },
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use store::{Entry, ImportSummary, Incoming, Store};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, State, WindowEvent,
+    AppHandle, Emitter, Manager, State, WindowEvent,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 pub(crate) type Db = Mutex<Store>;
 type SettingsDb = Mutex<SettingsStore>;
@@ -34,6 +43,12 @@ fn save_tag(
     note: Option<String>,
 ) -> Result<Entry, String> {
     db.lock().unwrap().upsert(original.as_deref(), &tag, value, note, now())
+}
+
+/// Yedek dosyasından toplu ekleme. `overwrite`: var olan tag'lerin üzerine yazılsın mı?
+#[tauri::command]
+fn import_tags(db: State<Db>, items: Vec<Incoming>, overwrite: bool) -> Result<ImportSummary, String> {
+    db.lock().unwrap().import(items, overwrite, now())
 }
 
 #[tauri::command]
@@ -62,10 +77,84 @@ fn get_settings(db: State<SettingsDb>) -> Settings {
 #[tauri::command]
 fn save_settings(app: AppHandle, db: State<SettingsDb>, settings: Settings) -> Result<Settings, String> {
     let mut store = db.lock().unwrap();
+    settings.validate()?;
+    // Önce kısayolu dene: başka bir uygulama kullanıyorsa hata verir ve hiçbir şey kaydedilmez.
+    if settings.palette_hotkey != store.settings.palette_hotkey {
+        register_palette_hotkey(&app, &settings.palette_hotkey, &store.settings.palette_hotkey)?;
+    }
     // Hook host süreci settings.json değişikliğini kendisi fark edip uygular.
     store.update(settings)?;
     sync_autostart(&app, store.settings.autostart);
     Ok(store.settings.clone())
+}
+
+// ---------------------------------------------------------------- arama paleti
+
+/// Palet açılmadan önce odakta olan pencere (HWND); seçilen değer oraya yapıştırılır.
+static PREV_WINDOW: AtomicIsize = AtomicIsize::new(0);
+
+/// `new` kısayolunu kaydeder. Olmazsa (başka uygulama kullanıyor olabilir) `old` geri yüklenir.
+fn register_palette_hotkey(app: &AppHandle, new: &str, old: &str) -> Result<(), String> {
+    let gs = app.global_shortcut();
+    let bind = |text: &str| -> Result<(), String> {
+        let shortcut = settings::parse_hotkey(text)?;
+        gs.on_shortcut(shortcut, |app, _, event| {
+            if event.state == ShortcutState::Pressed {
+                toggle_palette(app);
+            }
+        })
+        .map_err(|e| format!("'{text}' kısayolu kaydedilemedi (başka bir uygulama kullanıyor olabilir): {e}"))
+    };
+    let _ = gs.unregister_all();
+    if let Err(e) = bind(new) {
+        if bind(old).is_err() {
+            log::error!("eski palet kısayolu da geri yüklenemedi");
+        }
+        return Err(e);
+    }
+    Ok(())
+}
+
+fn toggle_palette(app: &AppHandle) {
+    let Some(w) = app.get_webview_window("palette") else { return };
+    if w.is_visible().unwrap_or(false) {
+        let _ = w.hide();
+        return;
+    }
+    // Odak bize geçmeden ÖNCE hatırla: yapıştırma o pencereye yapılacak.
+    use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+    PREV_WINDOW.store(unsafe { GetForegroundWindow() }.0 as isize, Ordering::Relaxed);
+    let _ = w.center();
+    let _ = w.show();
+    let _ = w.set_focus();
+    let _ = app.emit_to("palette", "palette-open", ());
+}
+
+#[tauri::command]
+fn palette_close(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("palette") {
+        let _ = w.hide();
+    }
+}
+
+/// Paletten seçilen tag'in değerini, palet açılmadan önceki pencereye yapıştırır.
+#[tauri::command]
+fn palette_paste(app: AppHandle, db: State<Db>, tag: String) -> Result<(), String> {
+    let value = db.lock().unwrap().find(&tag).map(|e| e.value.clone()).ok_or("Tag bulunamadı.")?;
+    palette_close(app);
+    std::thread::spawn(move || {
+        use windows::Win32::{Foundation::HWND, UI::WindowsAndMessaging::SetForegroundWindow};
+        let prev = PREV_WINDOW.load(Ordering::Relaxed);
+        if prev != 0 {
+            let _ = unsafe { SetForegroundWindow(HWND(prev as *mut _)) };
+        }
+        // Odağın geri gelmesi ve palet penceresinin kapanması için kısa bekleme.
+        std::thread::sleep(Duration::from_millis(120));
+        if let Err(e) = expander::paste_value(value) {
+            log::error!("palet yapıştırması başarısız: {e}");
+        }
+    });
+    Ok(())
 }
 
 /// Kayıt defterindeki "Windows ile başlat" durumunu ayarla eşitler.
@@ -180,6 +269,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())
         .setup(|app| {
@@ -188,6 +278,10 @@ pub fn run() {
 
             let settings = SettingsStore::load(dir.join("settings.json"));
             sync_autostart(app.handle(), settings.settings.autostart);
+            let hotkey = settings.settings.palette_hotkey.clone();
+            if let Err(e) = register_palette_hotkey(app.handle(), &hotkey, &hotkey) {
+                log::error!("palet kısayolu kaydedilemedi: {e}");
+            }
             app.manage(Mutex::new(settings));
 
             setup_tray(app.handle())?;
@@ -199,14 +293,20 @@ pub fn run() {
             Ok(())
         })
         // Kapatma düğmesi uygulamayı bitirmez, tray'e indirir.
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Palet, odağı kaybedince (başka yere tıklanınca, Alt+Tab) kendiliğinden kapanır.
+            WindowEvent::Focused(false) if window.label() == "palette" => {
+                let _ = window.hide();
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
-            list_tags, save_tag, delete_tag, copy_text, get_settings, save_settings
+            list_tags, save_tag, import_tags, delete_tag, copy_text, get_settings, save_settings, palette_close,
+            palette_paste
         ])
         .run(tauri::generate_context!())
         .expect("uygulama başlatılamadı");

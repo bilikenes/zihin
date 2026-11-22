@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Pencil, Tag, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Pencil, Tag, Trash2 } from "lucide-react";
 import { Button, EmptyState, Field, Input, Menu, Modal, SearchField, Table, Textarea, useToast, type Column } from "./ui";
 import { copyText, deleteTag, saveTag, type Entry } from "./api";
 
@@ -67,6 +67,7 @@ export function TagsView({ entries, prefix, onChanged, newTagPending, onNewTagHa
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [toDelete, setToDelete] = useState<Entry | null>(null);
+  const [revealed, setRevealed] = useState(false);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -195,14 +196,32 @@ export function TagsView({ entries, prefix, onChanged, newTagPending, onNewTagHa
             </Field>
             <Field label="Değer">
               {(id) => (
-                <Input
-                  id={id}
-                  type="password"
-                  autoComplete="off"
-                  value={draft.value}
-                  onValueChange={(v) => setDraft({ ...draft, value: v })}
-                  placeholder="test@test.com"
-                />
+                <div className="app-reveal">
+                  <Input
+                    id={id}
+                    type={revealed ? "text" : "password"}
+                    autoComplete="off"
+                    value={draft.value}
+                    onValueChange={(v) => setDraft({ ...draft, value: v })}
+                    placeholder="test@test.com"
+                  />
+                  <button
+                    type="button"
+                    className="app-reveal-btn"
+                    aria-label="Değeri göster (basılı tut)"
+                    title="Basılı tutunca görünür"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onPointerDown={() => setRevealed(true)}
+                    onPointerUp={() => setRevealed(false)}
+                    onPointerLeave={() => setRevealed(false)}
+                    onPointerCancel={() => setRevealed(false)}
+                    onBlur={() => setRevealed(false)}
+                    onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setRevealed(true); } }}
+                    onKeyUp={() => setRevealed(false)}
+                  >
+                    {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               )}
             </Field>
             <Field label="Not">

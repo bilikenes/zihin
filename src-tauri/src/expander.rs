@@ -26,7 +26,13 @@ use windows::Win32::{
     UI::{Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
 };
 
-use crate::{matcher::Matcher, settings::SettingsStore, store::Store};
+use crate::{
+    matcher::Matcher,
+    popup,
+    settings::SettingsStore,
+    store::Store,
+    suggest::{self, Action, Candidate, Usage},
+};
 
 /// Kendi SendInput çağrılarımızı işaretler ("KWWA"); hook bunları kendi girdisi saymaz.
 /// Başka yazılımların gönderdiği tuşlar (uzak masaüstü, ekran klavyesi, makrolar) yazı sayılır.
@@ -50,6 +56,7 @@ fn trace(msg: impl FnOnce() -> String) {
 // Canlı ayarlar: hook her tuşta bunları okur, kilit gerekmez.
 static PREFIX_CP: AtomicU32 = AtomicU32::new(';' as u32);
 static TRIGGER_VK: AtomicU32 = AtomicU32::new(0x09);
+static SUGGEST_ON: AtomicBool = AtomicBool::new(true);
 
 fn prefix() -> char {
     char::from_u32(PREFIX_CP.load(Ordering::Relaxed)).unwrap_or(';')
@@ -57,6 +64,15 @@ fn prefix() -> char {
 
 fn trigger_vk() -> u32 {
     TRIGGER_VK.load(Ordering::Relaxed)
+}
+
+/// Balondaki ipucunda görünen tetikleyici tuş adı.
+fn trigger_label() -> &'static str {
+    match trigger_vk() {
+        0x0D => "Enter",
+        0x20 => "Boşluk",
+        _ => "Tab",
+    }
 }
 
 // ---------------------------------------------------------------- veri (JSON dosyaları)
@@ -67,6 +83,8 @@ struct Data {
     tags_mtime: Option<SystemTime>,
     settings: SettingsStore,
     settings_mtime: Option<SystemTime>,
+    /// Hangi tag kaç kez genişletildi: balondaki sıralama için.
+    usage: Usage,
     checked: Instant,
 }
 
@@ -82,6 +100,7 @@ impl Data {
             settings_mtime: mtime(&sp),
             tags: Store::load(tp),
             settings: SettingsStore::load(sp),
+            usage: Usage::load(dir.join("usage.json")),
             checked: Instant::now(),
             dir,
         };
@@ -92,6 +111,7 @@ impl Data {
     fn apply_settings(&self) {
         PREFIX_CP.store(self.settings.settings.prefix_char() as u32, Ordering::Relaxed);
         TRIGGER_VK.store(self.settings.settings.trigger.vk(), Ordering::Relaxed);
+        SUGGEST_ON.store(self.settings.settings.suggestions, Ordering::Relaxed);
     }
 
     /// Arayüz dosyaları değiştirdiyse yeniden okur (en fazla 250 ms'de bir bakar).
@@ -131,22 +151,102 @@ fn lookup(tag: &str) -> Option<String> {
     d.as_ref()?.tags.find(tag).map(|e| e.value.clone())
 }
 
+/// `typed` ile başlayan tag'ler, en uygunu başta (bkz. `suggest::rank`).
+fn candidates(typed: &str) -> Vec<Candidate> {
+    let Ok(d) = DATA.lock() else { return Vec::new() };
+    let Some(d) = d.as_ref() else { return Vec::new() };
+    let entries: Vec<(String, Option<String>)> = d.tags.list().into_iter().map(|e| (e.tag, e.note)).collect();
+    suggest::rank(typed, &entries, &d.usage.counts)
+}
+
+fn record_use(tag: &str) {
+    if let Ok(mut d) = DATA.lock() {
+        if let Some(d) = d.as_mut() {
+            d.usage.record(tag);
+        }
+    }
+}
+
 // ---------------------------------------------------------------- hook durumu
 
+/// Değeri yapıştıracak iş (`;tag` silinir, yerine değer gelir).
 struct Job {
     backspaces: usize,
     value: String,
 }
 
+/// İşçi iş parçacığının yapacağı işler. Hook içinde ağır iş yapılmaz; hepsi buraya gider.
+enum Work {
+    /// Genişletme. `tag` verilirse başarıdan sonra kullanım sayısı artar.
+    Paste(Job, Option<String>),
+    /// Otomatik tamamlama: `backspaces` kadar sil, sonra `text`'i yaz.
+    Type { backspaces: usize, text: String },
+}
+
+/// Balonda gösterilen öneriler.
+struct Sug {
+    /// Balon açılırken yazılmış olan metin (tag adı olabilecek kısım).
+    typed: String,
+    items: Vec<Candidate>,
+    selected: usize,
+}
+
 struct State {
     matcher: Matcher,
     foreground: isize,
-    /// Yutulan tetikleyicinin keyup olayı da yutulsun.
-    swallow_trigger_up: bool,
+    /// Yutulan tuşun (tetikleyici, ↑, ↓, Esc) keyup olayı da yutulsun. 0 = yok.
+    swallow_up: u32,
+    sug: Option<Sug>,
+    /// Esc ile kapatıldı: yeni bir önek yazılana kadar balon açılmaz.
+    dismissed: bool,
 }
 
-static STATE: Mutex<State> = Mutex::new(State { matcher: Matcher::new(), foreground: 0, swallow_trigger_up: false });
-static JOBS: OnceLock<mpsc::Sender<Job>> = OnceLock::new();
+static STATE: Mutex<State> =
+    Mutex::new(State { matcher: Matcher::new(), foreground: 0, swallow_up: 0, sug: None, dismissed: false });
+static JOBS: OnceLock<mpsc::Sender<Work>> = OnceLock::new();
+
+fn hint_for(exact: bool) -> String {
+    format!("{} · {}", trigger_label(), if exact { "yaz" } else { "tamamla" })
+}
+
+fn popup_content(sug: &Sug) -> popup::Content {
+    let exact = suggest::decide(&sug.typed, &sug.items[sug.selected].tag) == Action::Expand;
+    popup::Content { items: sug.items.clone(), selected: sug.selected, prefix: prefix(), hint: hint_for(exact) }
+}
+
+/// Yazılan metne göre balonu açar, günceller ya da kapatır. Her tuştan sonra çağrılır.
+fn sync_suggestions(state: &mut State) {
+    let typed = if SUGGEST_ON.load(Ordering::Relaxed) {
+        state.matcher.partial(prefix()).filter(|t| !t.is_empty())
+    } else {
+        None
+    };
+    let Some(typed) = typed else {
+        state.sug = None;
+        state.dismissed = false;
+        popup::hide();
+        return;
+    };
+    if state.dismissed || state.sug.as_ref().is_some_and(|s| s.typed == typed) {
+        return;
+    }
+    let items = candidates(&typed);
+    if items.is_empty() {
+        state.sug = None;
+        popup::hide();
+        return;
+    }
+    let sug = Sug { typed, items, selected: 0 };
+    popup::update(popup_content(&sug));
+    state.sug = Some(sug);
+}
+
+/// Balonu bırakır (fare tıklaması, odak değişimi gibi durumlarda).
+fn drop_suggestions(state: &mut State) {
+    state.sug = None;
+    state.dismissed = false;
+    popup::hide();
+}
 
 /// Hook host sürecinin ana işi: bu fonksiyon geri dönmez.
 pub fn run_host(dir: PathBuf) {
@@ -155,18 +255,29 @@ pub fn run_host(dir: PathBuf) {
         *d = Some(Data::load(dir));
     }
 
-    let (tx, rx) = mpsc::channel::<Job>();
+    let (tx, rx) = mpsc::channel::<Work>();
     let _ = JOBS.set(tx);
     thread::Builder::new()
         .name("expander-worker".into())
         .spawn(move || {
-            for job in rx {
-                if let Err(e) = perform(&job) {
-                    trace(|| format!("genişletme başarısız: {e}"));
+            for work in rx {
+                match work {
+                    Work::Paste(job, tag) => match perform(&job) {
+                        Ok(()) => {
+                            if let Some(tag) = tag {
+                                record_use(&tag);
+                            }
+                        }
+                        Err(e) => trace(|| format!("genişletme başarısız: {e}")),
+                    },
+                    Work::Type { backspaces, text } => type_text(backspaces, &text),
                 }
             }
         })
         .expect("işçi iş parçacığı başlatılamadı");
+
+    // Balon penceresi, kancayla aynı iş parçacığında (mesaj döngüsünde) yaşar.
+    popup::init();
 
     unsafe {
         let module = GetModuleHandleW(None).ok().map(|m| m.into());
@@ -195,6 +306,7 @@ unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) 
         if matches!(m, WM_LBUTTONDOWN | WM_RBUTTONDOWN | WM_MBUTTONDOWN | WM_XBUTTONDOWN) {
             if let Ok(mut s) = STATE.lock() {
                 s.matcher.reset();
+                drop_suggestions(&mut s);
             }
         }
     }
@@ -208,8 +320,20 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
     unsafe { CallNextHookEx(None, code, wparam, lparam) }
 }
 
-/// `true` dönerse tuş yutulur.
+/// `true` dönerse tuş yutulur. Tuş işlendikten sonra balon, yazılan metne göre eşitlenir.
 fn handle_key(wparam: WPARAM, lparam: LPARAM) -> bool {
+    let kb = unsafe { &*(lparam.0 as *const KBDLLHOOKSTRUCT) };
+    let swallowed = handle_key_inner(wparam, lparam);
+    let msg = wparam.0 as u32;
+    if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && kb.dwExtraInfo != OWN_MARK {
+        if let Ok(mut state) = STATE.lock() {
+            sync_suggestions(&mut state);
+        }
+    }
+    swallowed
+}
+
+fn handle_key_inner(wparam: WPARAM, lparam: LPARAM) -> bool {
     let kb = unsafe { &*(lparam.0 as *const KBDLLHOOKSTRUCT) };
     if kb.dwExtraInfo == OWN_MARK {
         return false;
@@ -226,8 +350,8 @@ fn handle_key(wparam: WPARAM, lparam: LPARAM) -> bool {
     let Ok(mut state) = STATE.lock() else { return false };
 
     if is_up {
-        if vk == trigger_vk() && state.swallow_trigger_up {
-            state.swallow_trigger_up = false;
+        if vk != 0 && vk == state.swallow_up {
+            state.swallow_up = 0;
             return true;
         }
         return false;
@@ -259,20 +383,60 @@ fn handle_key(wparam: WPARAM, lparam: LPARAM) -> bool {
     // AltGr = Ctrl+Alt: karakter üretir (örn. Türkçe Q klavyede '@').
     let alt_gr = ctrl && alt;
 
+    // Balon görünürken ↑/↓ vurgulu satırı değiştirir, Esc balonu kapatır. Tuş uygulamaya gitmez.
+    if !(ctrl || alt || win || shift) && popup::is_visible() && state.sug.is_some() {
+        let key = VIRTUAL_KEY(vk as u16);
+        if key == VK_DOWN || key == VK_UP {
+            if let Some(sug) = state.sug.as_mut() {
+                let n = sug.items.len();
+                sug.selected = if key == VK_DOWN { (sug.selected + 1) % n } else { (sug.selected + n - 1) % n };
+                popup::update(popup_content(sug));
+            }
+            state.swallow_up = vk;
+            return true;
+        }
+        if key == VK_ESCAPE {
+            drop_suggestions(&mut state);
+            state.dismissed = true;
+            state.swallow_up = vk;
+            return true;
+        }
+    }
+
     if vk == trigger_vk() {
         if ctrl || alt || win || shift {
             state.matcher.reset();
             return false;
         }
+
+        // Balon görünürken Tab vurgulu satırı uygular: yazılandan uzunsa yalnızca tamamlar,
+        // yazılanla aynıysa aşağıdaki gibi değeri yazar.
+        if popup::is_visible() {
+            let highlighted = state.sug.as_ref().map(|s| (s.typed.clone(), s.items[s.selected].tag.clone()));
+            if let Some((typed, tag)) = highlighted {
+                if suggest::decide(&typed, &tag) == Action::Complete {
+                    if let Some(c) = state.matcher.complete(prefix(), &tag) {
+                        trace(|| format!("tamamlama: {} silinip {:?} yazılıyor", c.backspaces, c.text));
+                        state.swallow_up = vk;
+                        if let Some(tx) = JOBS.get() {
+                            let _ = tx.send(Work::Type { backspaces: c.backspaces, text: c.text });
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+
         let before = state.matcher.text();
+        let used_tag = state.matcher.partial(prefix()).map(|t| t.to_lowercase());
         let Some(exp) = state.matcher.trigger(prefix(), lookup) else {
             trace(|| format!("tetikleyici: eşleşme yok, tampon={before:?}"));
             return false;
         };
         trace(|| format!("tetikleyici: {} karakter silinip yapıştırılıyor", exp.backspaces));
-        state.swallow_trigger_up = true;
+        state.swallow_up = vk;
         if let Some(tx) = JOBS.get() {
-            let _ = tx.send(Job { backspaces: exp.backspaces, value: exp.value });
+            let _ = tx.send(Work::Paste(Job { backspaces: exp.backspaces, value: exp.value }, used_tag));
         }
         return true;
     }
@@ -351,6 +515,38 @@ fn send(inputs: &[INPUT]) {
     unsafe {
         SendInput(inputs, std::mem::size_of::<INPUT>() as i32);
     }
+}
+
+/// Otomatik tamamlama: `backspaces` kadar siler, sonra `text`'i klavyeden yazılmış gibi gönderir.
+/// Pano kullanılmaz: tamamlama hızlı olmalı ve panoyu değiştirmemeli. Hepsi tek `SendInput` çağrısıdır.
+fn type_text(backspaces: usize, text: &str) {
+    let mut inputs = Vec::with_capacity(backspaces * 2 + text.len() * 2);
+    for _ in 0..backspaces {
+        inputs.push(key_input(VK_BACK, false));
+        inputs.push(key_input(VK_BACK, true));
+    }
+    for unit in text.encode_utf16() {
+        for up in [false, true] {
+            inputs.push(INPUT {
+                r#type: INPUT_KEYBOARD,
+                Anonymous: INPUT_0 {
+                    ki: KEYBDINPUT {
+                        wVk: VIRTUAL_KEY(0),
+                        wScan: unit,
+                        dwFlags: if up { KEYEVENTF_UNICODE | KEYEVENTF_KEYUP } else { KEYEVENTF_UNICODE },
+                        time: 0,
+                        dwExtraInfo: OWN_MARK,
+                    },
+                },
+            });
+        }
+    }
+    send(&inputs);
+}
+
+/// Değeri, odaktaki uygulamaya yapıştırır (palet için; `;tag` silmeden).
+pub fn paste_value(value: String) -> Result<(), String> {
+    perform(&Job { backspaces: 0, value })
 }
 
 enum Saved {

@@ -1,9 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Ana pencere izinleri",
+  "description": "Ana pencere ve arama paleti izinleri",
   "windows": [
-    "main"
+    "main",
+    "palette"
   ],
   "permissions": [
     "core:default",

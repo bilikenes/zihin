@@ -101,7 +101,7 @@ function Shell() {
               )}
 
               {view === SETTINGS ? (
-                <SettingsView settings={settings} onChange={setSettings} mode={mode} onModeChange={setMode} updater={updater} />
+                <SettingsView entries={entries} onImported={refresh} settings={settings} onChange={setSettings} mode={mode} onModeChange={setMode} updater={updater} />
               ) : (
                 <TagsView entries={entries} prefix={settings.prefix} onChanged={refresh} newTagPending={newTagPending} onNewTagHandled={clearNewTag} />
               )}

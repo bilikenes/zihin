@@ -7,15 +7,35 @@ export interface Entry {
   created_at: number;
 }
 
+/** İçe aktarılan dosyadaki tek satır. */
+export interface ImportItem {
+  tag: string;
+  value: string;
+  note?: string;
+}
+
+export interface ImportSummary {
+  added: number;
+  updated: number;
+  skipped: number;
+  invalid: number;
+}
+
 export type Trigger = "tab" | "enter" | "space";
 
 export interface Settings {
   prefix: string;
   trigger: Trigger;
   autostart: boolean;
+  /** Arama paletini açan genel kısayol, örn. "Ctrl+Shift+Alt+Space". */
+  palette_hotkey: string;
+  /** `;ta` yazarken imlecin yanında eşleşen tag'leri gösteren balon. */
+  suggestions: boolean;
 }
 
-export const defaultSettings: Settings = { prefix: ";", trigger: "tab", autostart: true };
+export const DEFAULT_PALETTE_HOTKEY = "Ctrl+Shift+Alt+Space";
+
+export const defaultSettings: Settings = { prefix: ";", trigger: "tab", autostart: true, palette_hotkey: DEFAULT_PALETTE_HOTKEY, suggestions: true };
 
 /** Tauri penceresinde mi çalışıyoruz? Değilse (tarayıcıda geliştirme) sahte veri kullanılır. */
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -68,11 +88,35 @@ async function devInvoke(cmd: string, args: Record<string, unknown> = {}): Promi
       write(TAGS_KEY, all);
       return entry;
     }
+    case "import_tags": {
+      const { items, overwrite } = args as { items: ImportItem[]; overwrite: boolean };
+      const all = devTags();
+      const sum: ImportSummary = { added: 0, updated: 0, skipped: 0, invalid: 0 };
+      for (const it of items) {
+        const name = it.tag.trim().toLowerCase();
+        if (!/^[a-z0-9_-]+$/.test(name) || !it.value) { sum.invalid++; continue; }
+        const note = it.note?.trim() ? it.note : null;
+        const i = all.findIndex((e) => e.tag === name);
+        if (i >= 0 && !overwrite) sum.skipped++;
+        else if (i >= 0) { all[i] = { tag: name, value: it.value, note, created_at: all[i].created_at }; sum.updated++; }
+        else { all.push({ tag: name, value: it.value, note, created_at: Date.now() / 1000 }); sum.added++; }
+      }
+      write(TAGS_KEY, all);
+      return sum;
+    }
     case "delete_tag":
       write(TAGS_KEY, devTags().filter((e) => e.tag !== args.tag));
       return null;
     case "get_settings":
-      return read<Settings>(SETTINGS_KEY, defaultSettings);
+      return { ...defaultSettings, ...read<Partial<Settings>>(SETTINGS_KEY, {}) };
+    case "palette_close":
+      return null;
+    case "palette_paste": {
+      // Tarayıcıda yapıştıracak başka pencere yok: değeri panoya koyarız.
+      const found = devTags().find((e) => e.tag === args.tag);
+      if (found) await navigator.clipboard.writeText(found.value).catch(() => {});
+      return null;
+    }
     case "save_settings":
       write(SETTINGS_KEY, args.settings);
       return args.settings;
@@ -91,6 +135,15 @@ export const listTags = () => invoke<Entry[]>("list_tags");
 
 export const saveTag = (args: { original?: string | null; tag: string; value: string; note?: string | null }) =>
   invoke<Entry>("save_tag", args);
+
+export const importTags = (items: ImportItem[], overwrite: boolean) =>
+  invoke<ImportSummary>("import_tags", { items, overwrite });
+
+/** Arama paletini kapatır. */
+export const paletteClose = () => invoke<void>("palette_close");
+
+/** Seçilen tag'in değerini, palet açılmadan önceki pencereye yapıştırır. */
+export const palettePaste = (tag: string) => invoke<void>("palette_paste", { tag });
 
 export const deleteTag = (tag: string) => invoke<void>("delete_tag", { tag });
 

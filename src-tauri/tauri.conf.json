@@ -23,6 +23,22 @@
         "fullscreen": false,
         "decorations": false,
         "visible": false
+      },
+      {
+        "label": "palette",
+        "title": "Zihin arama",
+        "url": "index.html?palette",
+        "width": 460,
+        "height": 290,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false
       }
     ],
     "security": {

@@ -11,6 +11,13 @@ pub struct Expansion {
     pub value: String,
 }
 
+/// Otomatik tamamlamanın klavyeye yaptıracağı iş: `backspaces` kadar sil, sonra `text`'i yaz.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Completion {
+    pub backspaces: usize,
+    pub text: String,
+}
+
 #[derive(Default)]
 pub struct Matcher {
     buffer: Vec<char>,
@@ -39,6 +46,33 @@ impl Matcher {
 
     pub fn text(&self) -> String {
         self.buffer.iter().collect()
+    }
+
+    /// Son önekten sonra yazılan kısım (tag adı olabilecek metin). Önek yoksa ya da bu kısım
+    /// tag'de bulunamayacak bir karakter içeriyorsa (boşluk, noktalama...) `None`.
+    pub fn partial(&self, prefix: char) -> Option<String> {
+        let at = self.buffer.iter().rposition(|&c| c == prefix)?;
+        let name: String = self.buffer[at + 1..].iter().collect();
+        name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_').then_some(name)
+    }
+
+    /// Yazılan kısmı `tag`'e tamamlar ve tamponu buna göre günceller. Yazılan metin tag'in başıyla
+    /// birebir (büyük/küçük harf dahil) uyuyorsa yalnızca kalan harfler yazılır; uymuyorsa
+    /// yazılan kısım silinip tag baştan yazılır.
+    pub fn complete(&mut self, prefix: char, tag: &str) -> Option<Completion> {
+        let typed = self.partial(prefix)?;
+        let (backspaces, text) = if tag.starts_with(&typed) {
+            (0, tag.chars().skip(typed.chars().count()).collect::<String>())
+        } else {
+            (typed.chars().count(), tag.to_string())
+        };
+        for _ in 0..backspaces {
+            self.buffer.pop();
+        }
+        for c in text.chars() {
+            self.push(c);
+        }
+        Some(Completion { backspaces, text })
     }
 
     /// Tetikleyiciye basıldı. Tampon `önek + kayıtlı tag` ile bitiyorsa genişletmeyi döndürür.
@@ -157,6 +191,53 @@ mod tests {
         let mut m = Matcher::default();
         typed(&mut m, "#ip");
         assert_eq!(m.trigger('#', tags).unwrap().backspaces, 3);
+    }
+
+    #[test]
+    fn partial_is_the_text_after_the_last_prefix() {
+        let mut m = Matcher::default();
+        typed(&mut m, "merhaba ;ma");
+        assert_eq!(m.partial(';').as_deref(), Some("ma"));
+        typed(&mut m, ";x");
+        assert_eq!(m.partial(';').as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn partial_is_none_without_prefix_or_with_non_tag_characters() {
+        let mut m = Matcher::default();
+        typed(&mut m, "mail");
+        assert_eq!(m.partial(';'), None);
+        typed(&mut m, ";ma il");
+        assert_eq!(m.partial(';'), None);
+        m.reset();
+        typed(&mut m, ";");
+        assert_eq!(m.partial(';').as_deref(), Some(""));
+    }
+
+    #[test]
+    fn complete_types_only_the_missing_letters_when_case_matches() {
+        let mut m = Matcher::default();
+        typed(&mut m, "x ;ma");
+        let c = m.complete(';', "mail").unwrap();
+        assert_eq!(c, Completion { backspaces: 0, text: "il".into() });
+        assert_eq!(m.text(), "x ;mail");
+        assert_eq!(m.trigger(';', tags).unwrap().backspaces, 5);
+    }
+
+    #[test]
+    fn complete_retypes_the_tag_when_case_differs() {
+        let mut m = Matcher::default();
+        typed(&mut m, ";MA");
+        let c = m.complete(';', "mail").unwrap();
+        assert_eq!(c, Completion { backspaces: 2, text: "mail".into() });
+        assert_eq!(m.text(), ";mail");
+    }
+
+    #[test]
+    fn complete_needs_a_prefix() {
+        let mut m = Matcher::default();
+        typed(&mut m, "ma");
+        assert_eq!(m.complete(';', "mail"), None);
     }
 
     #[test]
